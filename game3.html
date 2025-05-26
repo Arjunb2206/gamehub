@@ -1,0 +1,336 @@
+<!DOCTYPE html><html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>GameHub - Racing Extreme</title> <link rel="stylesheet" href="styles.css"> <style> #gameCanvas { border: 2px solid #333; background-color: #000; display: block; margin: 20px auto; } .game-container { text-align: center; } .game-info { margin: 20px; padding: 15px; background-color: #222; border-radius: 5px; } .controls { margin: 10px 0; } </style> </head> <body> <header> <div class="logo">GameHub</div> <nav> <ul> <li><a href="index.html">Home</a></li> <li><a href="games.html">Games</a></li> <li><a href="about.html">About</a></li> <li><a href="contact.html">Contact</a></li> <li><a href="login.html">Login</a></li> </ul> </nav> </header>
+<main>
+    <section class="game-container">
+        <h1>Racing Extreme</h1>
+        <div class="game-info">
+            <p>Avoid obstacles and collect coins to score points!</p>
+            <p>Score: <span id="score">0</span> | Speed: <span id="speed">1</span>x | Lives: <span id="lives">3</span></p>
+        </div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div class="controls">
+            <button id="leftBtn" class="btn">←</button>
+            <button id="rightBtn" class="btn">→</button>
+        </div>
+        <button id="startBtn" class="btn">Start Game</button>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2023 GameHub. All rights reserved.</p>
+</footer>
+
+<script>
+    // Game variables
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const speedElement = document.getElementById('speed');
+    const livesElement = document.getElementById('lives');
+    const startBtn = document.getElementById('startBtn');
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
+    
+    // Road parameters
+    const roadWidth = 300;
+    const laneCount = 3;
+    const laneWidth = roadWidth / laneCount;
+    const roadLeft = (canvas.width - roadWidth) / 2;
+    
+    // Car parameters
+    const carWidth = 50;
+    const carHeight = 80;
+    let carX = canvas.width / 2 - carWidth / 2;
+    const carY = canvas.height - carHeight - 20;
+    
+    // Game state
+    let score = 0;
+    let speed = 1;
+    let lives = 3;
+    let gameRunning = false;
+    let animationId;
+    let obstacles = [];
+    let coins = [];
+    let roadOffset = 0;
+    let lastObstacleTime = 0;
+    let lastCoinTime = 0;
+    
+    // Keys
+    const keys = {
+        ArrowLeft: false,
+        ArrowRight: false
+    };
+    
+    // Event listeners
+    startBtn.addEventListener('click', startGame);
+    leftBtn.addEventListener('click', () => moveCar('left'));
+    rightBtn.addEventListener('click', () => moveCar('right'));
+    document.addEventListener('keydown', keyDown);
+    document.addEventListener('keyup', keyUp);
+    
+    function keyDown(e) {
+        if (keys.hasOwnProperty(e.key)) {
+            keys[e.key] = true;
+        }
+    }
+    
+    function keyUp(e) {
+        if (keys.hasOwnProperty(e.key)) {
+            keys[e.key] = false;
+        }
+    }
+    
+    function moveCar(direction) {
+        if (!gameRunning) return;
+        
+        if (direction === 'left' && carX > roadLeft) {
+            carX -= laneWidth;
+        } else if (direction === 'right' && carX < roadLeft + roadWidth - carWidth) {
+            carX += laneWidth;
+        }
+    }
+    
+    function startGame() {
+        if (!gameRunning) {
+            score = 0;
+            speed = 1;
+            lives = 3;
+            obstacles = [];
+            coins = [];
+            roadOffset = 0;
+            scoreElement.textContent = score;
+            speedElement.textContent = speed;
+            livesElement.textContent = lives;
+            carX = canvas.width / 2 - carWidth / 2;
+            gameRunning = true;
+            startBtn.textContent = 'Restart Game';
+            gameLoop();
+        } else {
+            // Restart game
+            cancelAnimationFrame(animationId);
+            startGame();
+        }
+    }
+    
+    function gameLoop() {
+        if (!gameRunning) return;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw road
+        drawRoad();
+        
+        // Draw car
+        drawCar();
+        
+        // Handle car movement
+        if (keys.ArrowLeft && carX > roadLeft) {
+            carX -= 5;
+        }
+        if (keys.ArrowRight && carX < roadLeft + roadWidth - carWidth) {
+            carX += 5;
+        }
+        
+        // Create obstacles
+        const now = Date.now();
+        if (now - lastObstacleTime > 2000 / speed) {
+            createObstacle();
+            lastObstacleTime = now;
+        }
+        
+        // Create coins
+        if (now - lastCoinTime > 3000 / speed) {
+            createCoin();
+            lastCoinTime = now;
+        }
+        
+        // Update and draw obstacles
+        updateObstacles();
+        
+        // Update and draw coins
+        updateCoins();
+        
+        // Increase speed over time
+        if (Math.floor(score / 10) + 1 > speed) {
+            speed = Math.floor(score / 10) + 1;
+            speedElement.textContent = speed;
+        }
+        
+        animationId = requestAnimationFrame(gameLoop);
+    }
+    
+    function drawRoad() {
+        // Draw grass
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(0, 0, roadLeft, canvas.height);
+        ctx.fillRect(roadLeft + roadWidth, 0, roadLeft, canvas.height);
+        
+        // Draw road
+        ctx.fillStyle = '#34495e';
+        ctx.fillRect(roadLeft, 0, roadWidth, canvas.height);
+        
+        // Draw road markings
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([30, 30]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Draw lane markings
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        for (let i = 1; i < laneCount; i++) {
+            ctx.beginPath();
+            ctx.moveTo(roadLeft + i * laneWidth, 0);
+            ctx.lineTo(roadLeft + i * laneWidth, canvas.height);
+            ctx.stroke();
+        }
+        
+        // Animate road (moving lines)
+        roadOffset += speed * 2;
+        if (roadOffset >= 60) roadOffset = 0;
+        
+        ctx.fillStyle = '#ffffff';
+        for (let i = -1; i < canvas.height / 60 + 1; i++) {
+            const y = i * 60 - roadOffset;
+            ctx.fillRect(roadLeft + 10, y, 10, 30);
+            ctx.fillRect(roadLeft + roadWidth - 20, y, 10, 30);
+        }
+    }
+    
+    function drawCar() {
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillRect(carX, carY, carWidth, carHeight);
+        
+        // Car details
+        ctx.fillStyle = '#c0392b';
+        ctx.fillRect(carX + 5, carY + 5, carWidth - 10, carHeight - 10);
+        
+        // Windows
+        ctx.fillStyle = '#3498db';
+        ctx.fillRect(carX + 10, carY + 10, carWidth - 20, 20);
+        ctx.fillRect(carX + 10, carY + 40, carWidth - 20, 20);
+        
+        // Lights
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.arc(carX + 10, carY + 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(carX + carWidth - 10, carY + 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    function createObstacle() {
+        const lane = Math.floor(Math.random() * laneCount);
+        const x = roadLeft + lane * laneWidth + (laneWidth - 40) / 2;
+        const width = 40;
+        const height = 60;
+        const colors = ['#e67e22', '#9b59b6', '#3498db', '#f1c40f'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        obstacles.push({
+            x: x,
+            y: -height,
+            width: width,
+            height: height,
+            color: color,
+            speed: 3 * speed
+        });
+    }
+    
+    function createCoin() {
+        const lane = Math.floor(Math.random() * laneCount);
+        const x = roadLeft + lane * laneWidth + (laneWidth - 20) / 2;
+        
+        coins.push({
+            x: x,
+            y: -20,
+            radius: 10,
+            color: '#f1c40f',
+            speed: 3 * speed
+        });
+    }
+    
+    function updateObstacles() {
+        for (let i = 0; i < obstacles.length; i++) {
+            const obstacle = obstacles[i];
+            obstacle.y += obstacle.speed;
+            
+            // Draw obstacle
+            ctx.fillStyle = obstacle.color;
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            
+            // Check collision with car
+            if (
+                carX < obstacle.x + obstacle.width &&
+                carX + carWidth > obstacle.x &&
+                carY < obstacle.y + obstacle.height &&
+                carY + carHeight > obstacle.y
+            ) {
+                // Collision detected
+                obstacles.splice(i, 1);
+                lives--;
+                livesElement.textContent = lives;
+                i--;
+                
+                if (lives <= 0) {
+                    gameOver();
+                    return;
+                }
+            } else if (obstacle.y > canvas.height) {
+                // Obstacle off screen
+                obstacles.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    function updateCoins() {
+        for (let i = 0; i < coins.length; i++) {
+            const coin = coins[i];
+            coin.y += coin.speed;
+            
+            // Draw coin
+            ctx.fillStyle = coin.color;
+            ctx.beginPath();
+            ctx.arc(coin.x + 10, coin.y + 10, coin.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Check collision with car
+            if (
+                carX < coin.x + 20 &&
+                carX + carWidth > coin.x &&
+                carY < coin.y + 20 &&
+                carY + carHeight > coin.y
+            ) {
+                // Coin collected
+                coins.splice(i, 1);
+                score += speed;
+                scoreElement.textContent = score;
+                i--;
+            } else if (coin.y > canvas.height) {
+                // Coin off screen
+                coins.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    function gameOver() {
+        gameRunning = false;
+        cancelAnimationFrame(animationId);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = '20px Arial';
+        ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+    }
+</script>
+</body> </html>
