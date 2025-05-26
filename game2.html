@@ -1,0 +1,247 @@
+<!DOCTYPE html><html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>GameHub - Puzzle Master</title> <link rel="stylesheet" href="styles.css"> <style> #gameCanvas { border: 2px solid #333; background-color: #222; display: block; margin: 20px auto; } .game-container { text-align: center; } .game-info { margin: 20px; padding: 15px; background-color: #222; border-radius: 5px; } </style> </head> <body> <header> <div class="logo">GameHub</div> <nav> <ul> <li><a href="index.html">Home</a></li> <li><a href="games.html">Games</a></li> <li><a href="about.html">About</a></li> <li><a href="contact.html">Contact</a></li> <li><a href="login.html">Login</a></li> </ul> </nav> </header>
+<main>
+    <section class="game-container">
+        <h1>Puzzle Master</h1>
+        <div class="game-info">
+            <p>Click on adjacent tiles to swap them. Arrange the numbers in order to solve the puzzle!</p>
+            <p>Moves: <span id="moves">0</span> | Time: <span id="time">0</span>s</p>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <button id="startBtn" class="btn">New Game</button>
+        <button id="solveBtn" class="btn">Show Solution</button>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2023 GameHub. All rights reserved.</p>
+</footer>
+
+<script>
+    // Game variables
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const movesElement = document.getElementById('moves');
+    const timeElement = document.getElementById('time');
+    const startBtn = document.getElementById('startBtn');
+    const solveBtn = document.getElementById('solveBtn');
+    
+    const tileSize = 100;
+    const rows = 4;
+    const cols = 4;
+    let board = [];
+    let emptyPos = { row: rows-1, col: cols-1 };
+    let moves = 0;
+    let seconds = 0;
+    let timer;
+    let gameRunning = false;
+    
+    // Initialize game
+    function initGame() {
+        // Create solved board
+        board = [];
+        let counter = 1;
+        for (let i = 0; i < rows; i++) {
+            board[i] = [];
+            for (let j = 0; j < cols; j++) {
+                if (i === rows-1 && j === cols-1) {
+                    board[i][j] = 0; // Empty tile
+                } else {
+                    board[i][j] = counter++;
+                }
+            }
+        }
+        
+        // Shuffle the board
+        shuffleBoard();
+        
+        moves = 0;
+        seconds = 0;
+        movesElement.textContent = moves;
+        timeElement.textContent = seconds;
+        
+        if (timer) clearInterval(timer);
+        timer = setInterval(updateTimer, 1000);
+        
+        gameRunning = true;
+        drawBoard();
+    }
+    
+    // Shuffle the board
+    function shuffleBoard() {
+        // Perform random moves to shuffle
+        const shuffleMoves = 200;
+        for (let i = 0; i < shuffleMoves; i++) {
+            const directions = [];
+            if (emptyPos.row > 0) directions.push('up');
+            if (emptyPos.row < rows-1) directions.push('down');
+            if (emptyPos.col > 0) directions.push('left');
+            if (emptyPos.col < cols-1) directions.push('right');
+            
+            const randomDir = directions[Math.floor(Math.random() * directions.length)];
+            moveTile(randomDir);
+        }
+        moves = 0; // Reset moves after shuffle
+    }
+    
+    // Draw the board
+    function drawBoard() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const x = j * tileSize;
+                const y = i * tileSize;
+                
+                if (board[i][j] !== 0) {
+                    // Draw tile
+                    ctx.fillStyle = '#3498db';
+                    ctx.fillRect(x, y, tileSize, tileSize);
+                    ctx.strokeStyle = '#2980b9';
+                    ctx.strokeRect(x, y, tileSize, tileSize);
+                    
+                    // Draw number
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(board[i][j], x + tileSize/2, y + tileSize/2);
+                } else {
+                    // Draw empty tile
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(x, y, tileSize, tileSize);
+                }
+            }
+        }
+    }
+    
+    // Move tile
+    function moveTile(direction) {
+        let newRow = emptyPos.row;
+        let newCol = emptyPos.col;
+        
+        switch (direction) {
+            case 'up': newRow = emptyPos.row + 1; break;
+            case 'down': newRow = emptyPos.row - 1; break;
+            case 'left': newCol = emptyPos.col + 1; break;
+            case 'right': newCol = emptyPos.col - 1; break;
+        }
+        
+        // Check if move is valid
+        if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+            // Swap tiles
+            board[emptyPos.row][emptyPos.col] = board[newRow][newCol];
+            board[newRow][newCol] = 0;
+            emptyPos = { row: newRow, col: newCol };
+            moves++;
+            movesElement.textContent = moves;
+            
+            drawBoard();
+            
+            // Check if puzzle is solved
+            if (isSolved()) {
+                gameOver(true);
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    // Check if puzzle is solved
+    function isSolved() {
+        let counter = 1;
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                if (i === rows-1 && j === cols-1) {
+                    if (board[i][j] !== 0) return false;
+                } else {
+                    if (board[i][j] !== counter++) return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+    // Update timer
+    function updateTimer() {
+        seconds++;
+        timeElement.textContent = seconds;
+    }
+    
+    // Game over
+    function gameOver(solved) {
+        gameRunning = false;
+        clearInterval(timer);
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        
+        if (solved) {
+            ctx.fillText('Puzzle Solved!', canvas.width / 2, canvas.height / 2 - 30);
+            ctx.font = '20px Arial';
+            ctx.fillText(`Moves: ${moves} | Time: ${seconds}s`, canvas.width / 2, canvas.height / 2 + 20);
+        }
+    }
+    
+    // Show solution
+    function showSolution() {
+        if (!gameRunning) return;
+        
+        // Create solved board for solution
+        let counter = 1;
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                if (i === rows-1 && j === cols-1) {
+                    board[i][j] = 0;
+                } else {
+                    board[i][j] = counter++;
+                }
+            }
+        }
+        emptyPos = { row: rows-1, col: cols-1 };
+        
+        drawBoard();
+        gameOver(false);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px Arial';
+        ctx.fillText('Solution Shown', canvas.width / 2, canvas.height / 2 + 60);
+    }
+    
+    // Event listeners
+    startBtn.addEventListener('click', initGame);
+    solveBtn.addEventListener('click', showSolution);
+    
+    canvas.addEventListener('click', (e) => {
+        if (!gameRunning) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const col = Math.floor(x / tileSize);
+        const row = Math.floor(y / tileSize);
+        
+        // Check if clicked tile is adjacent to empty space
+        if (
+            (Math.abs(row - emptyPos.row) === 1 && col === emptyPos.col) ||
+            (Math.abs(col - emptyPos.col) === 1 && row === emptyPos.row)
+        ) {
+            let direction;
+            if (row < emptyPos.row) direction = 'up';
+            else if (row > emptyPos.row) direction = 'down';
+            else if (col < emptyPos.col) direction = 'left';
+            else if (col > emptyPos.col) direction = 'right';
+            
+            moveTile(direction);
+        }
+    });
+    
+    // Initialize game on load
+    initGame();
+</script>
+</body>
+</html>
