@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub - Space Adventure</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        #gameCanvas {
+            border: 2px solid #333;
+            background-color: #000;
+            display: block;
+            margin: 20px auto;
+        }
+        .game-container {
+            text-align: center;
+        }
+        .game-info {
+            margin: 20px;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">GameHub</div>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="games.html">Games</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="game-container">
+            <h1>Space Adventure</h1>
+            <div class="game-info">
+                <p>Use arrow keys to move your spaceship. Avoid asteroids and collect stars to score points!</p>
+                <p>Score: <span id="score">0</span> | Lives: <span id="lives">3</span></p>
+            </div>
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <button id="startBtn" class="btn">Start Game</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 GameHub. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+        const startBtn = document.getElementById('startBtn');
+        
+        let score = 0;
+        let lives = 3;
+        let gameRunning = false;
+        let animationId;
+        
+        // Player
+        const player = {
+            x: canvas.width / 2 - 15,
+            y: canvas.height - 60,
+            width: 30,
+            height: 30,
+            speed: 5,
+            color: '#3498db'
+        };
+        
+        // Stars (collectibles)
+        let stars = [];
+        
+        // Asteroids (obstacles)
+        let asteroids = [];
+        
+        // Keys
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            ArrowUp: false,
+            ArrowDown: false
+        };
+        
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        document.addEventListener('keydown', keyDown);
+        document.addEventListener('keyup', keyUp);
+        
+        function keyDown(e) {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+            }
+        }
+        
+        function keyUp(e) {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        }
+        
+        function startGame() {
+            if (!gameRunning) {
+                score = 0;
+                lives = 3;
+                stars = [];
+                asteroids = [];
+                scoreElement.textContent = score;
+                livesElement.textContent = lives;
+                gameRunning = true;
+                startBtn.textContent = 'Restart Game';
+                gameLoop();
+            } else {
+                // Restart game
+                cancelAnimationFrame(animationId);
+                startGame();
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update player position
+            if (keys.ArrowLeft && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if (keys.ArrowRight && player.x < canvas.width - player.width) {
+                player.x += player.speed;
+            }
+            if (keys.ArrowUp && player.y > 0) {
+                player.y -= player.speed;
+            }
+            if (keys.ArrowDown && player.y < canvas.height - player.height) {
+                player.y += player.speed;
+            }
+            
+            // Draw player
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // Create stars randomly
+            if (Math.random() < 0.02) {
+                stars.push({
+                    x: Math.random() * (canvas.width - 10),
+                    y: 0,
+                    width: 10,
+                    height: 10,
+                    speed: 3,
+                    color: '#f1c40f'
+                });
+            }
+            
+            // Update and draw stars
+            for (let i = 0; i < stars.length; i++) {
+                stars[i].y += stars[i].speed;
+                ctx.fillStyle = stars[i].color;
+                ctx.fillRect(stars[i].x, stars[i].y, stars[i].width, stars[i].height);
+                
+                // Check collision with player
+                if (
+                    player.x < stars[i].x + stars[i].width &&
+                    player.x + player.width > stars[i].x &&
+                    player.y < stars[i].y + stars[i].height &&
+                    player.y + player.height > stars[i].y
+                ) {
+                    // Player collected star
+                    stars.splice(i, 1);
+                    score++;
+                    scoreElement.textContent = score;
+                    i--;
+                } else if (stars[i].y > canvas.height) {
+                    // Star went off screen
+                    stars.splice(i, 1);
+                    i--;
+                }
+            }
+            
+            // Create asteroids randomly
+            if (Math.random() < 0.01) {
+                const size = Math.random() * 20 + 10;
+                asteroids.push({
+                    x: Math.random() * (canvas.width - size),
+                    y: 0,
+                    width: size,
+                    height: size,
+                    speed: Math.random() * 2 + 1,
+                    color: '#e74c3c'
+                });
+            }
+            
+            // Update and draw asteroids
+            for (let i = 0; i < asteroids.length; i++) {
+                asteroids[i].y += asteroids[i].speed;
+                ctx.fillStyle = asteroids[i].color;
+                ctx.fillRect(asteroids[i].x, asteroids[i].y, asteroids[i].width, asteroids[i].height);
+                
+                // Check collision with player
+                if (
+                    player.x < asteroids[i].x + asteroids[i].width &&
+                    player.x + player.width > asteroids[i].x &&
+                    player.y < asteroids[i].y + asteroids[i].height &&
+                    player.y + player.height > asteroids[i].y
+                ) {
+                    // Player hit by asteroid
+                    asteroids.splice(i, 1);
+                    lives--;
+                    livesElement.textContent = lives;
+                    i--;
+                    
+                    if (lives <= 0) {
+                        gameOver();
+                        return;
+                    }
+                } else if (asteroids[i].y > canvas.height) {
+                    // Asteroid went off screen
+                    asteroids.splice(i, 1);
+                    i--;
+                }
+            }
+            
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
+            ctx.font = '20px Arial';
+            ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+        }
+    </script>
+</body>
+</html>
