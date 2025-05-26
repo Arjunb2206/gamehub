@@ -23,17 +23,29 @@ Racing Extreme (fully implemented)
 File Structure
 gamehub/
 ├── index.html          # Home page
+
 ├── games.html          # Games listing
+
 ├── game1.html          # Space Adventure game
+
 ├── game2.html          # Puzzle Master game
+
 ├── game3.html          # Racing Extreme game
+
 ├── about.html          # About us page
+
 ├── contact.html        # Contact form
+
 ├── login.html          # Login page
+
 ├── register.html       # Registration page
+
 ├── profile.html        # User profile
+
 ├── styles.css          # Main stylesheet
+
 └── README.md           # This file
+
 Getting Started
 Clone the repository:
 
@@ -44,6 +56,8 @@ Open any HTML file in your browser to start playing!
 Games Available
 1. Space Adventure
 Space Adventure Screenshot
+<img width="960" alt="image" src="https://github.com/user-attachments/assets/75f76d44-c235-43b5-b4e7-ef2744c01562" />
+
 
 Control a spaceship to collect stars and avoid asteroids
 
@@ -51,6 +65,7 @@ Score system and lives counter
 
 2. Puzzle Master
 Puzzle Master Screenshot
+<img width="960" alt="image" src="https://github.com/user-attachments/assets/6fc6e5d5-6106-4e02-9f8b-0ddcd746a37c" />
 
 Slide puzzle game with move counter
 
@@ -58,6 +73,7 @@ Timer and solution reveal option
 
 3. Racing Extreme
 Racing Extreme Screenshot
+<img width="960" alt="image" src="https://github.com/user-attachments/assets/246eee21-498f-4715-9e69-8891a2e4917e" />
 
 Lane-based racing game with obstacles
 
@@ -65,6 +81,7 @@ Progressive difficulty and coin collection
 
 4. snake
 snake screenshot
+<img width="960" alt="image" src="https://github.com/user-attachments/assets/419ad649-f331-4b4e-bf7e-afd87d522812" />
 
 Progressive difficulty and fruit collection
 
